@@ -94,8 +94,6 @@ class EPT(GeomCommon):
             (3002, 30, 415): ['VIEW3D', self._read_fake],  # record 63
 
             (13501, 135, 510) : ['PFAST', self._read_pfast_msc],  # MSC-specific
-
-            # NX-specific
             (3601, 36, 55) : ['PFAST', self._read_pfast_nx],  # NX-specific
             (3801, 38, 979) : ['PPLANE', self._read_pplane],
             (11801, 118, 560) : ['PWELD', self._read_fake],
@@ -2285,7 +2283,7 @@ class EPT(GeomCommon):
                        kr1, kr2, kr3, mass, ge)
             prop = PFAST.add_op2_data(data_in)
             str(prop)
-            print(prop)
+            #print(prop)
             self._add_op2_property(prop)
             n += ntotal
         self.card_count['PFAST'] = nproperties
@@ -2735,11 +2733,11 @@ class EPT(GeomCommon):
                 # this is a fake PSHELL
                 propi = self.properties[pid]
                 if prop == propi:
-                    self.log.warning('Fake PSHELL (skipping):\n%s' % propi)
+                    self.log.warning(f'Fake PSHELL {pid:d} (skipping):\n{propi}')
                     nproperties -= 1
                     continue
                 #assert propi.type in ['PCOMP', 'PCOMPG'], propi.get_stats()
-                self.log.error(f'PSHELL is also {propi.type} (skipping PSHELL):\n{propi}{prop}')
+                self.log.error(f'PSHELL {pid:d} is also {propi.type} (skipping PSHELL):\n{propi}{prop}')
                 nproperties -= 1
                 continue
             #continue
@@ -2764,6 +2762,7 @@ class EPT(GeomCommon):
             struct_6i4s = Struct(self._endian + b'6q8s')
 
         nproperties = (len(data) - n) // ntotal
+        nproperties_found = 0
         for unused_i in range(nproperties):
             edata = data[n:n+ntotal]
             out = struct_6i4s.unpack(edata)
@@ -2771,10 +2770,16 @@ class EPT(GeomCommon):
             #data_in = [pid, mid, cid, inp, stress, isop, fctn]
             if self.is_debug_file:
                 self.binary_debug.write('  PSOLID=%s\n' % str(out))
+
+            n += ntotal
+            fctn = out[-1]
+            if fctn == b'FAKE':
+                self.log.warning('    PSOLID=%s; is this a PCOMPLS?' % str(out))
+                continue
             prop = PSOLID.add_op2_data(out)
             self._add_op2_property(prop)
-            n += ntotal
-        self.card_count['PSOLID'] = nproperties
+            nproperties_found += 1
+        self.card_count['PSOLID'] = nproperties_found
         return n
 
 # PSOLIDL

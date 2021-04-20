@@ -94,7 +94,7 @@ OPTISTRUCT_VERSIONS = [
     b'OS2017.1', b'OS2017.2',
     b'OS2018.1',
     b'OS2019.1', b'OS2019.2',
-    b'OS2020',
+    b'OS2020', b'OS2020.1',
 ]
 AUTODESK_VERSIONS = [
     b'NE  0824',  # this means NEi Nastran...
@@ -3280,6 +3280,8 @@ class OP2Reader:
 
         #op2._results._found_result(result_name)
         responses = op2.op2_results.responses
+
+        # create the result object
         if self.read_mode == 1:
             assert data is not None, data
             assert len(data) > 12, len(data)
@@ -3339,10 +3341,13 @@ class OP2Reader:
                     responses.flutter_response = FlutterResponse()
                 else:
                     responses.flutter_response.n += 1
+            else:
+                self.log.warning('skipping response_type=%d' % response_type)
             return ndata
             #else: # response not added...
                 #pass
 
+        # fill the result object
         read_r1tabrg = True
         if read_r1tabrg:
             #self.show_data(data, types='ifs', endian=None)

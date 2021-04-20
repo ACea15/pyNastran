@@ -14,7 +14,7 @@ from pyNastran.bdf.bdf_interface.add_methods import AddMethods
 
 from pyNastran.bdf.cards.elements.elements import CFAST, CGAP, CRAC2D, CRAC3D, PLOTEL, GENEL
 from pyNastran.bdf.cards.properties.properties import PFAST, PGAP, PRAC2D, PRAC3D
-from pyNastran.bdf.cards.properties.solid import PLSOLID, PSOLID, PIHEX, PCOMPS
+from pyNastran.bdf.cards.properties.solid import PLSOLID, PSOLID, PIHEX, PCOMPS, PCOMPLS
 from pyNastran.bdf.cards.cyclic import CYAX, CYJOIN
 #from pyNastran.bdf.cards.msgmesh import CGEN, GMCORD, GMLOAD
 
@@ -123,7 +123,7 @@ from pyNastran.bdf.cards.bdf_sets import (
     RADSET,
 )
 from pyNastran.bdf.cards.params import PARAM, PARAM_MYSTRAN, PARAM_NASA95
-from pyNastran.bdf.cards.dmig import DMIG, DMIAX, DMI, DMIJ, DMIK, DMIJI, DMIG_UACCEL, DTI
+from pyNastran.bdf.cards.dmig import DMIG, DMIAX, DMI, DMIJ, DMIK, DMIJI, DMIG_UACCEL, DTI, DTI_UNITS
 from pyNastran.bdf.cards.thermal.loads import (QBDY1, QBDY2, QBDY3, QHBDY, TEMP, TEMPD, TEMPB3,
                                                TEMPRB, QVOL, QVECT)
 from pyNastran.bdf.cards.thermal.thermal import (CHBDYE, CHBDYG, CHBDYP, PCONV, PCONVM,
@@ -323,6 +323,7 @@ CARD_MAP = {
     'PSOLID' : PSOLID,
     'PLSOLID' : PLSOLID,
     'PCOMPS' : PCOMPS,
+    'PCOMPLS': PCOMPLS,
 
     'CTETRA4' : CTETRA4,
     'CPENTA6' : CPENTA6,
@@ -638,7 +639,7 @@ CARD_MAP = {
     'DMIJI' : DMIJI,
     'DMIJ' : DMIJ,
     'DMIAX' : DMIAX,
-    'DTI' : DTI,
+    #'DTI' : DTI,
     'DMIG_UACCEL' : DMIG_UACCEL,
 
     'BCRPARA' : BCRPARA,
@@ -7535,6 +7536,26 @@ class AddCards(AddMethods):
         fields = ['DSCONS', dscid, label, nid_eid, comp, limit, opt, layer_id]
         self.reject_card_lines('DSCONS', print_card_(fields).split('\n'), show_log=False)
 
+    def add_aepress(self, mach, sym_xz: str, sym_xy: str, ux_id: int, dmij: str, dmiji: str):
+        #AEPRESS MACH SYMXZ SYMXY UXID DMIJ DMIJI
+        """adds an AEPRESS card"""
+        assert isinstance(sym_xz, str), sym_xz
+        assert isinstance(sym_xy, str), sym_xy
+        assert isinstance(dmij, str), dmij
+        assert isinstance(dmiji, str), dmiji
+        fields = ['AEPRESS', mach, sym_xz, sym_xy, ux_id, dmij, dmiji]
+        self.reject_card_lines('AEPRESS', print_card_(fields).split('\n'), show_log=False)
+
+    def add_aeforce(self, mach: float, sym_xz: str, sym_xy: str, ux_id: int, mesh: str, force: int, dmik: str, perq: str):
+        """adds an AEPRESS card"""
+        assert isinstance(mesh, str), mesh
+        assert isinstance(sym_xz, str), sym_xz
+        assert isinstance(sym_xy, str), sym_xy
+        assert isinstance(dmik, str), dmik
+        assert isinstance(perq, str), perq
+        fields = ['AEFORCE', mach, sym_xz, sym_xy, ux_id, mesh, force, dmik, perq]
+        self.reject_card_lines('AEPRESS', print_card_(fields).split('\n'), show_log=False)
+
     def add_dvset(self, vid: int, dv_type: str, field: int, pref: float, pids: List[float],
                   alpha: float=1.0):
         """
@@ -8076,9 +8097,12 @@ class AddCards(AddMethods):
         self._add_convection_property_object(prop)
         return prop
 
-    def add_dti(self, name, fields, comment='') -> DTI:
+    def add_dti(self, name, fields, comment='') -> Union[DTI, DTI_UNITS]:
         """Creates a DTI card"""
-        dti = DTI(name, fields, comment=comment)
+        if name == 'UNITS':
+            dti = DTI_UNITS(name, fields, comment=comment)
+        else:
+            dti = DTI(name, fields, comment=comment)
         self._add_dti_object(dti)
         return dti
 

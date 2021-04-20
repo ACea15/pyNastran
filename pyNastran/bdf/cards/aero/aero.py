@@ -1290,7 +1290,14 @@ class AESURFS(BaseCard):
         card = self.raw_fields()
         return self.comment + print_card_8(card)
 
-
+CAERO1_MSG = """
++--------+-----+-----+----+-------+--------+--------+--------+------+
+|   1    |  2  |  3  | 4  |   5   |   6    |    7   |   8    |   9  |
++========+=====+=====+====+=======+========+========+========+======+
+| CAERO1 | EID | PID | CP | NSPAN | NCHORD |  LSPAN | LCHORD | IGID |
++--------+-----+-----+----+-------+--------+--------+--------+------+
+|        |  X1 | Y1  | Z1 |  X12  |   X4   |   Y4   |   Z4   | X43  |
++--------+-----+-----+----+-------+--------+--------+--------+------+""".strip()
 class CAERO1(BaseCard):
     """
     Defines an aerodynamic macro element (panel) in terms of two leading edge
@@ -1555,6 +1562,7 @@ class CAERO1(BaseCard):
             is_failed = True
         if is_failed:
             msg += str(self)
+            msg += CAERO1_MSG
             raise ValueError(msg)
         assert len(self.p1) == 3, 'p1=%s' % self.p1
         assert len(self.p4) == 3, 'p4=%s' % self.p4
@@ -5009,6 +5017,16 @@ class Spline(BaseCard):
     def __init__(self):
         BaseCard.__init__(self)
 
+SPLINE1_MSG = """
++---------+-------+-------+------+------+------+----+------+-------+
+|    1    |   2   |    3  |   4  |   5  |   6  |  7 |   8  |   9   |
++=========+=======+=======+======+======+======+====+======+=======+
+| SPLINE1 | EID   | CAERO | BOX1 | BOX2 | SETG | DZ | METH | USAGE |
++---------+-------+-------+------+------+------+----+------+-------+
+|         | NELEM | MELEM |      |      |      |    |      |       |
++---------+-------+-------+------+------+------+----+------+-------+
+| SPLINE1 |   3   |  111  | 115  | 122  |  14  | 0. |      |       |
++---------+-------+-------+------+------+------+----+------+-------+""".strip()
 
 class SPLINE1(Spline):
     """
@@ -5782,7 +5800,9 @@ class SPLINE4(Spline):
 
     def __init__(self, eid: int, caero: int, aelist: int, setg: int,
                  dz: float, method: str, usage: str,
-                 nelements: int, melements: int, comment: str=''):
+                 nelements: int, melements: int,
+                 ftype: Optional[int]=None, rcore: Optional[float]=None,
+                 comment: str=''):
         """
         Creates a SPLINE4 card, which defines a curved Infinite Plate,
         Thin Plate, or Finite Plate Spline.
@@ -5815,6 +5835,10 @@ class SPLINE4(Spline):
         nelements / melements : int; default=10
             The number of FE elements along the local spline x/y-axis if
             using the FPS option
+        ftype: int; default=None
+            MSC only
+        rcore : float; default=None
+            MSC only
         comment : str; default=''
             a comment for the card
 
@@ -5831,6 +5855,8 @@ class SPLINE4(Spline):
         self.usage = usage
         self.nelements = nelements
         self.melements = melements
+        self.ftype = ftype
+        self.rcore = rcore
         self.caero_ref = None
         self.setg_ref = None
         self.aelist_ref = None
@@ -5862,9 +5888,12 @@ class SPLINE4(Spline):
         usage = string_or_blank(card, 8, 'usage', 'BOTH')
         nelements = integer_or_blank(card, 9, 'nelements', 10)
         melements = integer_or_blank(card, 10, 'melements', 10)
-        assert len(card) <= 11, f'len(SPLINE4 card = {len(card):d}\ncard={card}'
+        ftype = string_or_blank(card, 11, 'ftype', 'WF2')
+        rcore = double_or_blank(card, 12, 'rcore')
+        assert len(card) <= 13, f'len(SPLINE4 card = {len(card):d}\ncard={card}'
         return SPLINE4(eid, caero, aelist, setg, dz, method, usage,
-                       nelements, melements, comment=comment)
+                       nelements, melements, ftype=ftype, rcore=rcore,
+                       comment=comment)
 
     @classmethod
     def add_op2_data(cls, data, comment=''):
@@ -5975,7 +6004,7 @@ class SPLINE4(Spline):
         """
         list_fields = ['SPLINE4', self.eid, self.CAero(), self.AEList(), None,
                        self.Set(), self.dz, self.method, self.usage, self.nelements,
-                       self.melements]
+                       self.melements, self.ftype, self.rcore]
         return list_fields
 
     def repr_fields(self):
@@ -5986,7 +6015,8 @@ class SPLINE4(Spline):
         melements = set_blank_if_default(self.melements, 10)
 
         list_fields = ['SPLINE4', self.eid, self.CAero(), self.AEList(), None,
-                       self.Set(), dz, method, usage, nelements, melements]
+                       self.Set(), dz, method, usage, nelements, melements,
+                       self.ftype, self.rcore]
         list_fields = wipe_empty_fields(list_fields)
         return list_fields
 
@@ -6299,7 +6329,7 @@ def get_caero_subpanel_grid(model: BDF) -> Tuple[np.ndarray, np.ndarray]:
 
     if len(elements) == 1:
         points_array = np.vstack(points)
-        elements_array = elements[0].rehape(1, 4)
+        elements_array = elements[0] # .reshape(1, 4)
     else:
         points_array = np.vstack(points)
         elements_array = np.vstack(elements)

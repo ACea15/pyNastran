@@ -152,7 +152,7 @@ def _write_result_tables(obj: OP2, op2_file, fop2_ascii,
         'OUGF1', 'OUG1F', 'BOUGF1',
         'TOUGV1', 'OTEMP1',
         'OUG1', 'OUGV1PAT',
-        'OAG1',
+        'OAG1', 'OVG1',
 
         # eigenvectors, basic eigenvectors, basic fluid eigenvectors
         'OPHIG', 'BOPHIG', 'BOPHIGF',
@@ -226,7 +226,8 @@ def _write_result_tables(obj: OP2, op2_file, fop2_ascii,
         'OGPFB1',
         'ONRGY', 'ONRGY1',
         'OGS1', 'OGSTR1',
-        'OEFIT',
+        'OEFIT', 'OESRT',
+        'OSPDS1', 'OSPDSI1',
     ]
     skip_results = ['gpdt', 'bgpdt', 'eqexin', 'psds', 'monitor1', 'monitor3']
     for table_type in obj.get_table_types():
